@@ -1,0 +1,105 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<meta name="HandheldFriendly" content="true" />
+		<meta name="MobileOptimized" content="320" />
+		<title></title>
+		<script type="text/javascript" src="js/common.js"></script>
+		<script type="text/javascript" src="js/zepto.min.js"></script>
+		<script type="text/javascript">
+			function plusReady(){
+				var self = plus.webview.currentWebview();
+				var xhr=null;
+				var html;
+				
+				var item=JSON.parse(plus.storage.getItem(self.id));
+				
+				if (item&&item.html) {
+					$('#contenter').html(item.html);
+					$('.view-more').remove();
+				}else{
+					$('#loading').show();
+					$('#retry').hide();
+					xhr = new plus.net.XMLHttpRequest();
+					xhr.timeout=1000;
+					xhr.onreadystatechange = function () {
+					    if ( xhr.readyState == 4 &&xhr.status == 200 ) {
+					    	html=xhr.responseText;
+					    	html=html.replace(/<\?xml version="1\.0" encoding="UTF-8"\?>/g,'',html);
+					    	html=html.replace(/<query.*><results>/g,'',html);
+					    	html=html.replace(/<\/results>/g,'',html);
+					    	html=html.replace(/<\/query>/g,'',html);
+					    	var content_html='';
+					    	content_html=$(html).find('.headline').html();
+					    	content_html+=$(html).find('.content-inner').html();
+							if(!item)item={};
+					    	item.html=content_html;
+					    	plus.storage.setItem(self.id,JSON.stringify(item));
+					    	$('#contenter').html(content_html);
+					    	$('.view-more').remove();
+					    }else if(xhr.readyState == 4 &&xhr.status == 0){
+					    	$('#loading').hide();
+							$('#retry').show();
+							plus.nativeUI.toast("网络错误", {
+								duration: "short"
+							});
+							xhr.abort();
+					    }
+					};
+					xhr.onerror = function () {
+						$('#loading').hide();
+						$('#retry').show();
+						plus.nativeUI.toast("网络请求错误", {
+							duration: "short"
+						});
+					};
+					xhr.ontimeout = function () {
+						$('#loading').hide();
+						$('#retry').show();
+						plus.nativeUI.toast("网络请求超时", {
+							duration: "short"
+						});
+					};
+					var url='https://query.yahooapis.com/v1/public/yql?q=select%20*%20from%20html%20where%20url=%22http://www.zhihuke.com/story/'+self.id+'%22';
+					xhr.open( "GET", url );
+					xhr.send();
+				}
+			}
+			
+			if(window.plus){
+				plusReady();
+			}else{
+				document.addEventListener('plusready',plusReady,false);
+			}
+		</script>
+		<link rel="stylesheet" href="css/common.css" type="text/css" charset="utf-8" />
+		<link rel="stylesheet" href="css/story.css" type="text/css" charset="utf-8" />
+		<style type="text/css">
+			.content{text-align: left;padding: 0;}
+			body{padding: 0;}
+			#loading{display: block;margin: 50px auto;}
+			#retry{
+				width: 30%;
+				margin: 50% auto;
+				text-align: center;
+				padding: 10px 2px;
+				border-radius: 0px;
+				background-color: #C6C6C6;
+				color: #fff;
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<header>
+			<div class="nvbt iback" ontouchstart="back(true);"></div>
+			<div class="nvtt"></div>
+		</header>
+		<div id="contenter">
+			<img id="loading" src="img/loading.gif" alt="" />
+			<div id="retry" onclick="plusReady()">重试</div>
+		</div>
+	</body>
+</html>
